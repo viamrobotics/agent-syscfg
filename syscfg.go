@@ -1,14 +1,19 @@
+// Package syscfg is the base module for this subsystem.
 package syscfg
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io/fs"
 	"os"
+	"path"
 	"sync/atomic"
 	"time"
+
+	errw "github.com/pkg/errors"
 )
 
 var (
@@ -55,7 +60,32 @@ func LoadConfig(path string) (*Config, error) {
 	return newConfig, nil
 }
 
+func writeFileIfNew(outPath string, data []byte) (bool, error) {
+	//nolint:gosec
+	curFileBytes, err := os.ReadFile(outPath)
+	if err != nil {
+		if !errw.Is(err, fs.ErrNotExist) {
+			return false, errw.Wrapf(err, "opening %s for reading", outPath)
+		}
+	} else if bytes.Equal(curFileBytes, data) {
+		return false, nil
+	}
+
+	//nolint:gosec
+	if err := os.MkdirAll(path.Dir(outPath), 0o755); err != nil {
+		return true, errw.Wrapf(err, "creating directory for %s", outPath)
+	}
+
+	//nolint:gosec
+	if err := os.WriteFile(outPath, data, 0o644); err != nil {
+		return true, errw.Wrapf(err, "writing %s", outPath)
+	}
+
+	return true, nil
+}
+
 type ContextKey string
+
 const HCReqKey = ContextKey("healthcheck")
 
 // HealthySleep allows a process to sleep while stil responding to context cancellation AND healthchecks. Returns false if cancelled.

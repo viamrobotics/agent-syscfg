@@ -13,23 +13,21 @@ import (
 
 	"github.com/edaniels/golog"
 	"github.com/jessevdk/go-flags"
-
 	syscfg "github.com/viamrobotics/agent-syscfg"
 )
 
 var (
 	// only changed/set at startup, so no mutex.
-	log = golog.NewDevelopmentLogger("agent-syscfg")
+	log                     = golog.NewDevelopmentLogger("agent-syscfg")
 	activeBackgroundWorkers sync.WaitGroup
 )
 
 func main() {
-	//nolint:lll
 	var opts struct {
-		Config             string `default:"/opt/viam/etc/agent-syscfg.json"       description:"Path to config file"                              long:"config"       short:"c"`
-		Debug              bool   `description:"Enable debug logging"              long:"debug"                                                   short:"d"`
-		Help               bool   `description:"Show this help message"            long:"help"                                                    short:"h"`
-		Version            bool   `description:"Show version"                      long:"version"                                                 short:"v"`
+		Config  string `default:"/opt/viam/etc/agent-syscfg.json" description:"Path to config file" long:"config" short:"c"`
+		Debug   bool   `description:"Enable debug logging"        long:"debug"                      short:"d"`
+		Help    bool   `description:"Show this help message"      long:"help"                       short:"h"`
+		Version bool   `description:"Show version"                long:"version"                    short:"v"`
 	}
 
 	parser := flags.NewParser(&opts, flags.IgnoreUnknown)
@@ -67,9 +65,12 @@ func main() {
 	}
 
 	log.Debugf("Config: %+v", cfg)
+	// core one-shot functions start
 
 	// set journald max size limits
 	syscfg.EnforceLogging(cfg.Logging, log)
+
+	// core one-shot functions end
 
 	// exact text "startup complete" is important, the parent process will watch for this line to indicate startup is successful
 	log.Info("agent-syscfg startup complete")
@@ -79,6 +80,7 @@ func main() {
 		if !syscfg.HealthySleep(ctx, time.Minute) {
 			break
 		}
+		// future tweaks that require regular checks/updates/etc (non one-shots) will go here
 	}
 
 	log.Info("agent-syscfg subsystem exiting")
