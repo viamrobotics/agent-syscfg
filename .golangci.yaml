@@ -60,7 +60,7 @@ linters-settings:
     sections:
       - standard
       - default
-      - prefix(github.com/viamrobotics/agent-provisioning)
+      - prefix(github.com/viamrobotics/agent-syscfg)
   gofumpt:
     lang-version: "1.21"
     extra-rules: true

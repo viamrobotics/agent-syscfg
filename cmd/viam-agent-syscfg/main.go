@@ -13,6 +13,7 @@ import (
 
 	"github.com/edaniels/golog"
 	"github.com/jessevdk/go-flags"
+
 	syscfg "github.com/viamrobotics/agent-syscfg"
 )
 
