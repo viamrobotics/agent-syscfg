@@ -66,15 +66,19 @@ func main() {
 	}
 
 	log.Debugf("Config: %+v", cfg)
+
+	// exact text "startup complete" is important, the parent process will watch for this line to indicate startup is successful
+	log.Info("agent-syscfg startup complete")
+
 	// core one-shot functions start
 
 	// set journald max size limits
 	syscfg.EnforceLogging(cfg.Logging, log)
 
-	// core one-shot functions end
+	// set unattended upgrade
+	syscfg.EnforceUpgrades(ctx, cfg.Upgrades, log)
 
-	// exact text "startup complete" is important, the parent process will watch for this line to indicate startup is successful
-	log.Info("agent-syscfg startup complete")
+	// core one-shot functions end
 
 	// do nothing forever, just respond to health checks
 	for {

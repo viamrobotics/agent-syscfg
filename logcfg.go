@@ -32,16 +32,22 @@ func EnforceLogging(cfg LogConfig, log *zap.SugaredLogger) {
 				return
 			}
 			log.Error(errw.Wrapf(err, "deleting %s", journaldConfPath))
+			return
+		}
+
+		if !checkJournaldEnabled(log) {
+			return
+		}
+
+		if err := restartJournald(); err != nil {
+			log.Error(err)
+			return
 		}
 		log.Infof("Logging config disabled. Removing customized %s", journaldConfPath)
 		return
 	}
 
-	cmd := exec.Command("systemctl", "is-enabled", "systemd-journald")
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		log.Error(errw.Wrapf(err, "executing 'systemctl is-enabled systemd-journald' %s", output))
-		log.Error("agent-syscfg can only adjust logging settings for systems using systemd with journald enabled")
+	if !checkJournaldEnabled(log) {
 		return
 	}
 
@@ -86,12 +92,30 @@ func EnforceLogging(cfg LogConfig, log *zap.SugaredLogger) {
 	}
 
 	if isNew {
-		cmd = exec.Command("systemctl", "restart", "systemd-journald")
-		output, err = cmd.CombinedOutput()
-		if err != nil {
-			log.Error(errw.Wrapf(err, "executing 'systemctl restart systemd-journald' %s", output))
+		if err := restartJournald(); err != nil {
+			log.Error(err)
 			return
 		}
 		log.Infof("Updated %s, setting SystemMaxUse=%s and RuntimeMaxUse=%s", journaldConfPath, persistSize, tempSize)
 	}
+}
+
+func restartJournald() error {
+	cmd := exec.Command("systemctl", "restart", "systemd-journald")
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return errw.Wrapf(err, "executing 'systemctl restart systemd-journald' %s", output)
+	}
+	return nil
+}
+
+func checkJournaldEnabled(log *zap.SugaredLogger) bool {
+	cmd := exec.Command("systemctl", "is-enabled", "systemd-journald")
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		log.Error(errw.Wrapf(err, "executing 'systemctl is-enabled systemd-journald' %s", output))
+		log.Error("agent-syscfg can only adjust logging settings for systems using systemd with journald enabled")
+		return false
+	}
+	return true
 }
