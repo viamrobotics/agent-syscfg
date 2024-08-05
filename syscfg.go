@@ -39,7 +39,8 @@ func GetRevision() string {
 }
 
 type Config struct {
-	Logging LogConfig `json:"logging"`
+	Logging  LogConfig      `json:"logging"`
+	Upgrades UpgradesConfig `json:"upgrades"`
 }
 
 func LoadConfig(path string) (*Config, error) {
