@@ -160,6 +160,19 @@ func generateOrigins(securityOnly bool) (string, error) {
 		return "", errw.Wrapf(err, "executing 'apt-cache policy' %s", output)
 	}
 
+	releases := generateOriginsInner(securityOnly, output)
+
+	// generate actual file contents
+	origins := "Unattended-Upgrade::Origins-Pattern {"
+	for release := range releases {
+		origins = fmt.Sprintf("%s\n    %s", origins, release)
+	}
+	origins = fmt.Sprintf("%s\n};\n", origins)
+	return origins, nil
+}
+
+// inner transformation logic of generateOrigins for testing.
+func generateOriginsInner(securityOnly bool, output []byte) map[string]bool {
 	releaseRegex := regexp.MustCompile(`release.*o=([^,]+).*n=([^,]+).*`)
 	matches := releaseRegex.FindAllStringSubmatch(string(output), -1)
 
@@ -175,12 +188,5 @@ func generateOrigins(securityOnly bool) (string, error) {
 		}
 		releases[fmt.Sprintf(`"origin=%s,codename=%s";`, release[1], release[2])] = true
 	}
-
-	// generate actual file contents
-	origins := "Unattended-Upgrade::Origins-Pattern {"
-	for release := range releases {
-		origins = fmt.Sprintf("%s\n    %s", origins, release)
-	}
-	origins = fmt.Sprintf("%s\n};\n", origins)
-	return origins, nil
+	return releases
 }
